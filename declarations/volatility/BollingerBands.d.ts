@@ -9,6 +9,7 @@ export declare class BollingerBandsOutput extends IndicatorInput {
     upper: number;
     lower: number;
     pb: number;
+    pw: number;
 }
 export declare class BollingerBands extends Indicator {
     generator: IterableIterator<BollingerBandsOutput | undefined>;

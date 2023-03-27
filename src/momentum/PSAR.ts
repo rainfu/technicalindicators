@@ -33,35 +33,36 @@ import { IndicatorInput, Indicator } from '../indicator/indicator';
   If the SAR is calculated to be BELOW the previous day's HIGH or today's HIGH then use the higher high between today and the previous day as the new SAR. Make the next day's calculations based on this SAR.
   ----------------------------------------------------------------------------------------
 */
-export class PSARInput extends IndicatorInput{
-  step:number;
-  max:number;
-  high:number[];
-  low:number[];
+export class PSARInput extends IndicatorInput {
+  step: number;
+  max: number;
+  high: number[];
+  low: number[];
 };
 
 export class PSAR extends Indicator {
-  result:number[];
-  generator:IterableIterator<number | undefined>;
-  constructor (input:PSARInput) {
+  result: number[];
+  generator: IterableIterator<number | undefined>;
+  constructor(input: PSARInput) {
     super(input);
 
     let highs = input.high || [];
     let lows = input.low || [];
 
-    var genFn = function* (step:number, max:number):IterableIterator<number | undefined> {
+    var genFn = function* (step: number, max: number): IterableIterator<number | undefined> {
       let curr, extreme, sar, furthest;
 
       let up = true;
+      let trend = 1;
       let accel = step;
       let prev = yield;
-      while(true) {
+      while (true) {
+        let result;
         if (curr) {
           sar = sar + accel * (extreme - sar);
-
+          trend++
           if (up) {
             sar = Math.min(sar, furthest.low, prev.low);
-
             if (curr.high > extreme) {
               extreme = curr.high;
               accel = Math.min(accel + step, max);
@@ -79,7 +80,7 @@ export class PSAR extends Indicator {
             accel = step;
             sar = extreme;
             up = !up;
-
+            trend = 1;
             extreme = !up ? curr.low : curr.high;
           }
         } else {
@@ -89,7 +90,8 @@ export class PSAR extends Indicator {
 
         furthest = prev;
         if (curr) prev = curr;
-        curr = yield sar;
+        result = { sar: sar, trend: trend }
+        curr = yield result;
       }
     };
 
@@ -102,7 +104,7 @@ export class PSAR extends Indicator {
         high: highs[index],
         low: lows[index],
       });
-      if(result.value !== undefined){
+      if (result.value !== undefined) {
         this.result.push(result.value);
       }
     });
@@ -110,19 +112,19 @@ export class PSAR extends Indicator {
 
   static calculate = psar;
 
-  nextValue (input:PSARInput):number {
+  nextValue(input: PSARInput): number {
     let nextResult = this.generator.next(input);
-    if(nextResult.value !== undefined)
+    if (nextResult.value !== undefined)
       return nextResult.value;
   };
 }
 
-export function psar(input:PSARInput):number[] {
-        Indicator.reverseInputs(input);
-        var result = new PSAR(input).result;
-        if(input.reversedInput) {
-            result.reverse();
-        }
-        Indicator.reverseInputs(input);
-        return result;
-    };
+export function psar(input: PSARInput): number[] {
+  Indicator.reverseInputs(input);
+  var result = new PSAR(input).result;
+  if (input.reversedInput) {
+    result.reverse();
+  }
+  Indicator.reverseInputs(input);
+  return result;
+};

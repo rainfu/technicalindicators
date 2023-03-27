@@ -828,11 +828,13 @@ class BollingerBands extends Indicator {
                     let upper = format(calcSMA + (calcsd * stdDev));
                     let lower = format(calcSMA - (calcsd * stdDev));
                     let pb = format((tick - lower) / (upper - lower));
+                    let pw = format((upper - lower) / (upper + lower));
                     result = {
                         middle: middle,
                         upper: upper,
                         lower: lower,
-                        pb: pb
+                        pb: pb,
+                        pw: pw
                     };
                 }
                 tick = yield result;
@@ -1418,11 +1420,14 @@ class PSAR extends Indicator {
         var genFn = function* (step, max) {
             let curr, extreme, sar, furthest;
             let up = true;
+            let trend = 1;
             let accel = step;
             let prev = yield;
             while (true) {
+                let result;
                 if (curr) {
                     sar = sar + accel * (extreme - sar);
+                    trend++;
                     if (up) {
                         sar = Math.min(sar, furthest.low, prev.low);
                         if (curr.high > extreme) {
@@ -1442,6 +1447,7 @@ class PSAR extends Indicator {
                         accel = step;
                         sar = extreme;
                         up = !up;
+                        trend = 1;
                         extreme = !up ? curr.low : curr.high;
                     }
                 }
@@ -1453,7 +1459,8 @@ class PSAR extends Indicator {
                 furthest = prev;
                 if (curr)
                     prev = curr;
-                curr = yield sar;
+                result = { sar: sar, trend: trend };
+                curr = yield result;
             }
         };
         this.result = [];
@@ -2670,7 +2677,7 @@ class CandlestickFinder {
     }
     getAllPatternIndex(data) {
         if (data.close.length < this.requiredCount) {
-            console.warn('Data count less than data required for the strategy ', this.name);
+            // console.warn('Data count less than data required for the strategy ', this.name);
             return [];
         }
         if (data.reversedInput) {
@@ -2689,7 +2696,7 @@ class CandlestickFinder {
     }
     hasPattern(data) {
         if (data.close.length < this.requiredCount) {
-            console.warn('Data count less than data required for the strategy ', this.name);
+            // console.warn('Data count less than data required for the strategy ', this.name);
             return false;
         }
         if (data.reversedInput) {
